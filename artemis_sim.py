@@ -322,7 +322,7 @@ html_content = f"""<!DOCTYPE html>
 </body>
 </html>"""
 
-filename = "artemis2_nasa_zh_en.html"
+filename = "index.html"
 with open(filename, "w", encoding="utf-8") as f:
     f.write(html_content)
 
