@@ -2,26 +2,27 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <title>NASA Artemis II - Calculus & Physics Simulator</title>
+    <title>NASA Artemis II - Advanced Calculus Simulator</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
     <style>
         body { margin: 0; overflow: hidden; background: #000; font-family: 'Consolas', monospace; color: #fff; }
         
+        /* HUD UI */
         .ui-element { transition: opacity 0.4s ease; }
         #hud { position: absolute; top: 20px; left: 20px; z-index: 10; pointer-events: none; }
-        #hud h1 { margin: 0; display: flex; align-items: center; gap: 12px; }
+        #hud h1 { margin: 0; display: flex; align-items: center; gap: 12px; text-shadow: 0 2px 5px rgba(0,0,0,0.8); }
         .header-logo { height: 45px; object-fit: contain; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.8)); }
         #mission-time { font-size: 20px; color: #ff9900; font-weight: bold; margin-top: 10px; letter-spacing: 2px; text-shadow: 0 0 10px rgba(255,153,0,0.5); }
         #lbl-stage { color: #00ff00; font-size: 14px; background: rgba(0,255,0,0.1); padding: 6px 12px; border-radius: 6px; display: inline-block; margin-top: 8px; border: 1px solid #00ff00; backdrop-filter: blur(5px); }
         
+        /* NTUT Logo */
         #ntut-logo-btn { position: absolute; bottom: 20px; left: 20px; height: 50px; z-index: 50; cursor: pointer; background: rgba(255, 255, 255, 0.9); padding: 8px 15px; border-radius: 8px; box-shadow: 0 0 15px rgba(0, 229, 255, 0.3); transition: all 0.3s ease; pointer-events: auto; }
         #ntut-logo-btn:hover { transform: scale(1.05) translateY(-5px); box-shadow: 0 5px 25px rgba(0, 229, 255, 0.8); }
         
         #ntut-overlay { display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 200; text-align: center; pointer-events: none; }
         .ntut-title { font-size: 40px; font-weight: bold; color: #00e5ff; text-shadow: 0 0 20px #00e5ff, 0 0 40px #1a73e8, 0 5px 5px rgba(0,0,0,0.8); letter-spacing: 2px; }
         .ntut-subtitle { font-size: 24px; color: #fff; margin-top: 10px; font-style: italic; text-shadow: 0 0 10px rgba(255,255,255,0.8); }
-        
         @keyframes fadeInOut {
             0% { opacity: 0; transform: translate(-50%, -40%) scale(0.9); }
             15% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
@@ -29,33 +30,34 @@
             100% { opacity: 0; transform: translate(-50%, -60%) scale(1.1); }
         }
 
+        /* Central Camera Controls */
         #cam-controls { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 20; display: flex; gap: 8px; background: rgba(10,15,25,0.8); padding: 8px; border-radius: 8px; border: 1px solid #334; backdrop-filter: blur(5px); }
         .cam-btn { background: rgba(26, 115, 232, 0.2); color: #8ab4f8; border: 1px solid transparent; padding: 10px 15px; cursor: pointer; border-radius: 6px; font-weight: bold; transition: 0.3s; font-family: 'Consolas'; }
         .cam-btn:hover { background: rgba(26, 115, 232, 0.4); }
         .cam-btn.active { background: #1a73e8; color: #fff; border-color: #4285f4; box-shadow: 0 0 10px rgba(26,115,232,0.5); }
         
+        /* Side Panel Toggle */
         #panel-toggle { position: absolute; top: 20px; right: 20px; z-index: 30; background: #1a73e8; color: white; border: none; padding: 8px 12px; border-radius: 6px; font-weight: bold; cursor: pointer; font-family: Consolas; transition: 0.3s; }
         #panel-toggle:hover { background: #1557b0; }
         
-        /* Clean HUD Panel */
-        .panel { position: absolute; top: 60px; right: 20px; width: 300px; background: rgba(10, 15, 25, 0.85); border: 1px solid #334; border-radius: 12px; padding: 20px; backdrop-filter: blur(8px); border-top: 4px solid #00e5ff; z-index: 10; box-shadow: 0 5px 20px rgba(0,0,0,0.5); display: block; }
-        .math-section { margin-bottom: 12px; border-bottom: 1px solid #223; padding-bottom: 8px; }
-        .math-title { font-size: 13px; color: #bbb; margin-bottom: 4px; font-weight: bold; }
-        .math-result { font-size: 22px; color: #00e5ff; font-weight: bold; }
+        /* Simple Main HUD Panel */
+        .panel { position: absolute; top: 60px; right: 20px; width: 340px; background: rgba(10, 15, 25, 0.85); border: 1px solid #334; border-radius: 12px; padding: 20px; backdrop-filter: blur(8px); border-top: 4px solid #00e5ff; z-index: 10; box-shadow: 0 5px 20px rgba(0,0,0,0.5); }
+        .math-section { margin-bottom: 15px; border-bottom: 1px solid #223; padding-bottom: 10px; }
+        .math-title { font-size: 14px; color: #bbb; margin-bottom: 6px; font-weight: bold; }
+        .math-result { font-size: 22px; color: #00e5ff; font-weight: bold; font-family: Consolas; }
         
-        /* Fixed Buttons */
+        /* Left Buttons */
         .btn-container { position: absolute; bottom: 100px; left: 20px; z-index: 20; display: flex; gap: 10px; flex-direction: column; }
         .btn { background: rgba(26, 115, 232, 0.2); color: #8ab4f8; border: 1px solid #1a73e8; padding: 12px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.3s; backdrop-filter: blur(5px); text-align: left; font-family: 'Consolas'; display: flex; align-items: center; gap: 10px; }
         .btn:hover { background: rgba(26, 115, 232, 0.6); color: white; }
-        .btn-replay { border-color: #ff9900; color: #ff9900; background: rgba(255, 153, 0, 0.1); }
         
         #btn-exit-cinematic { display: none; position: absolute; top: 20px; right: 20px; background: rgba(255,0,0,0.6); color: white; border: 1px solid red; padding: 10px 20px; border-radius: 6px; z-index: 100; cursor: pointer; font-family: Consolas; font-weight: bold; }
         #btn-exit-cinematic:hover { background: red; }
 
-        /* Educational Calculus Modal */
+        /* Educational Calculus & Math Modal */
         #desmos-modal { display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 95vw; height: 90vh; max-width: 1500px; background: rgba(10, 12, 18, 0.95); border: 1px solid #334; border-radius: 12px; z-index: 100; box-shadow: 0 10px 50px rgba(0,0,0,0.9); flex-direction: row; overflow: hidden; }
-        .desmos-sidebar { width: 42%; padding: 20px; border-right: 1px solid #223; background: rgba(0,0,0,0.3); overflow-y: auto; }
-        .desmos-canvas-container { width: 58%; position: relative; background: #050505; display: flex; flex-direction: column; }
+        .desmos-sidebar { width: 45%; padding: 20px; border-right: 1px solid #223; background: rgba(0,0,0,0.3); overflow-y: auto; }
+        .desmos-canvas-container { width: 55%; position: relative; background: #050505; display: flex; flex-direction: column; }
         
         .modal-toolbar { display: flex; align-items: center; background: #111; border-bottom: 1px solid #333; padding-right: 15px; flex-shrink: 0; z-index: 2; height: 50px; }
         .graph-tabs { display: flex; height: 100%; }
@@ -103,28 +105,28 @@
     <img id="ntut-logo-btn" src="image_2.png" alt="NTUT" onclick="zoomToNTUT()" title="Locate NTUT" onerror="this.style.display='none'">
 
     <div id="cam-controls" class="ui-element">
-        <button class="cam-btn active" id="btn-cam-free" onclick="setCamera('free')">🎥 自由視角 / Free Cam</button>
-        <button class="cam-btn" id="btn-cam-ship" onclick="setCamera('ship')">🚀 太空船視角 / Ship POV</button>
-        <button class="cam-btn" id="btn-cam-moon" onclick="setCamera('moon')">🌕 月球視角 / Moon POV</button>
+        <button class="cam-btn active" id="btn-cam-free" onclick="setCamera('free')">🎥 Free Cam</button>
+        <button class="cam-btn" id="btn-cam-ship" onclick="setCamera('ship')">🚀 Ship POV</button>
+        <button class="cam-btn" id="btn-cam-moon" onclick="setCamera('moon')">🌕 Moon POV</button>
         <button class="cam-btn" id="btn-cam-earth" onclick="setCamera('earth')">🌍 地球視角 / Earth POV</button>
     </div>
 
     <button id="panel-toggle" class="ui-element" onclick="toggleMainPanel()">[ - ] Hide Info</button>
     <button id="btn-exit-cinematic" onclick="toggleCinematic()">✖ 退出沉浸模式 / Exit Cinematic</button>
 
-    <!-- Clean HUD Panel -->
+    <!-- Simple HUD Panel -->
     <div id="live-math-panel" class="panel ui-element">
         <div class="math-section">
-            <div class="math-title">與地球距離 / Distance to Earth</div>
-            <div class="math-result" id="hud-dist-earth">0 km</div>
+            <div class="math-title">1. 地球距離 / Distance to Earth</div>
+            <div class="math-result" id="res-dist-earth">0 km</div>
         </div>
         <div class="math-section">
-            <div class="math-title">與月球距離 / Distance to Moon</div>
-            <div class="math-result" id="hud-dist-moon" style="color:#ff9900;">0 km</div>
+            <div class="math-title">2. 月球距離 / Distance to Moon</div>
+            <div class="math-result" id="res-dist-moon" style="color:#aaa;">0 km</div>
         </div>
         <div class="math-section" style="border-bottom:none;">
-            <div class="math-title">即時速度 / Velocity</div>
-            <div class="math-result" id="hud-vel" style="color:#00ff00;">0.00 km/s</div>
+            <div class="math-title">3. 飛行速度 / Velocity</div>
+            <div class="math-result" id="res-vel-main" style="color:#ff9900;">0 km/s</div>
         </div>
     </div>
     
@@ -132,83 +134,63 @@
         <button class="btn" onclick="toggleTrajectory()">👁️ 隱藏/顯示軌跡 / Toggle Orbit</button>
         <button class="btn" onclick="toggleCinematic()">🎬 沉浸模式 / Cinematic Mode</button>
         <button class="btn" onclick="toggleDesmos()" style="border-color: #00e5ff; color: #00e5ff;">📈 大學微積分圖表 / Vector Calculus Modal</button>
-        <button class="btn btn-replay" onclick="replayMission()">↺ 重新播放 / Replay Mission</button>
+        <button class="btn btn-replay" onclick="replayMission()">↺ 重新播放 / Replay</button>
     </div>
 
-    <!-- Advanced Educational Calculus Modal -->
+    <!-- Educational Calculus & Math Modal -->
     <div id="desmos-modal">
         <div class="desmos-sidebar">
-            <h3 style="color:#00e5ff; margin-top:0; border-bottom: 1px solid #334; padding-bottom: 8px;">即時向量計算 (Live Vector Calculations)</h3>
+            <h3 style="color:#00e5ff; margin-top:0; border-bottom: 1px solid #334; padding-bottom: 8px;">3D 向量微積分 (3D Vector Calculus)</h3>
+            
             <div class="eq-box" style="border-color:#1a73e8;">
-                <b>1. 3D 距離向量 / 3D Distance Vector</b><br>
+                <b>1. 位置與距離向量 (Position & Distance)</b><br>
+                r(t) = xi + yj + zk<br>
                 |r| = &radic;(x&sup2; + y&sup2; + z&sup2;)<br>
-                <span class="eq-hl" id="calc-sub-pos">Calculating...</span>
-            </div>
-            <div class="eq-box" style="border-color:#00ff00;">
-                <b>2. 3D 速度向量 / 3D Velocity Mag.</b><br>
-                |v| = &radic;(vx&sup2; + vy&sup2; + vz&sup2;)<br>
-                <span class="eq-hl" id="calc-sub-vel">Calculating...</span>
-            </div>
-            <div class="eq-box" style="border-color:#ffff00;">
-                <b>3. 動力學狀態 / Dynamic State</b><br>
-                a = v'(t) (加速度) | L = &int; |v| dt (弧長)<br>
-                <span class="eq-hl" id="calc-sub-acc">Calculating...</span>
+                <span class="eq-hl" id="calc-pos">Calculating...</span>
             </div>
             
-            <h3 style="color:#ff5555; margin-top:20px; border-bottom: 1px solid #334; padding-bottom: 8px;">大學微積分 (Undergraduate Vector Calculus)</h3>
-            <div class="eq-box" style="border-color:#ff5555;">
-                <b>弗萊納-塞雷公式 (Frenet-Serret Frame)</b><br>
-                T(t) = v / |v| (單位切向量)<br>
-                N(t) = T' / |T'| (單位法向量)<br>
-                B(t) = T &times; N (副法向量)<br>
-                <span class="eq-hl" id="calc-frenet">Calculating...</span>
+            <div class="eq-box" style="border-color:#00ff00;">
+                <b>2. 速度向量 (Velocity Vector)</b><br>
+                v(t) = r'(t) = v_x i + v_y j + v_z k<br>
+                |v| = &radic;(v_x&sup2; + v_y&sup2; + v_z&sup2;)<br>
+                <span class="eq-hl" id="calc-vel">Calculating...</span>
             </div>
-            <div class="eq-box" style="border-color:#ff00ff;">
-                <b>高階導數與扭率 (Jerk & Torsion)</b><br>
-                j(t) = a'(t) (急動度 / Jerk)<br>
-                &tau; = (v &times; a) &middot; j / |v &times; a|&sup2; (扭率)<br>
-                <span class="eq-hl" id="calc-torsion">Calculating...</span>
-            </div>
-            <div class="eq-box" style="border-color:#ff9900;">
-                <b>作功線積分 (Line Integral of Work)</b><br>
-                W = &int; F &middot; dr (重力對太空船作功)<br>
-                (Energy transfers between Kinetic and Potential)<br>
-                <span class="eq-hl" id="calc-work">Calculating...</span>
-            </div>
-            <div class="eq-box" style="border-color:#ff0000;">
-                <b>特定軌道能 (Vis-viva Integral)</b><br>
-                &epsilon; = v&sup2;/2 - &mu;/r<br>
-                <span class="eq-hl" id="calc-eng">Calculating...</span>
+            
+            <div class="eq-box" style="border-color:#ffff00;">
+                <b>3. 動力學狀態 (Dynamic State)</b><br>
+                a(t) = v'(t) (加速度) | L = &int; |v| dt (弧長)<br>
+                <span class="eq-hl" id="calc-acc">Calculating...</span>
             </div>
 
-            <h3 style="color:#00ffcc; margin-top:20px; border-bottom: 1px solid #334; padding-bottom: 8px;">本機模擬核心數學 (Simulation Core Mathematics)</h3>
-            <div class="eq-box" style="border-color:#00ffcc;">
-                <b>1. 月球參數方程式 (Moon Parametric Eq)</b><br>
-                D = 384.4, &omega; = 0.00266, Tilt = 5&deg; (0.087 rad)<br>
-                <span class="eq-hl">
-                    x_m(t) = 384.4 &times; cos(0.00266t)<br>
-                    y_m(t) = 384.4 &times; sin(0.00266t) &times; cos(0.087)<br>
-                    z_m(t) = 384.4 &times; sin(0.00266t) &times; sin(0.087)
-                </span>
+            <h3 style="color:#ff5555; margin-top:20px; border-bottom: 1px solid #334; padding-bottom: 8px;">弗萊納-塞雷公式 (Frenet-Serret Frame)</h3>
+            
+            <div class="eq-box" style="border-color:#ff5555;">
+                <b>切線與法線加速度 (Tangential & Normal Accel)</b><br>
+                a_T = (v &middot; a) / |v| (加速或減速)<br>
+                a_N = &radic;(|a|&sup2; - a_T&sup2;) (改變飛行方向)<br>
+                <span class="eq-hl" id="calc-tn">Calculating...</span>
             </div>
-            <div class="eq-box" style="border-color:#00ffcc;">
-                <b>2. 三次方貝茲曲線 (Cubic Bézier Curve - TLI)</b><br>
-                B(t) = (1-t)&sup3;P₀ + 3(1-t)&sup2;tP₁ + 3(1-t)t&sup2;P₂ + t&sup3;P₃<br>
-                <span class="eq-hl" style="color:#aaa;">
-                    P₀ = (x₀, y₀, z₀) [LEO Exit]<br>
-                    P₁ = (100, -150, 10)<br>
-                    P₂ = (300, -50, -10)<br>
-                    P₃ = (x_m + 10.4, y_m - 10.4, z_m + 5)
-                </span>
+
+            <div class="eq-box" style="border-color:#ff00ff;">
+                <b>軌道曲率與撓率 (Curvature & Torsion)</b><br>
+                &kappa; = |v &times; a| / |v|&sup3; (彎曲程度)<br>
+                &tau; = ((v &times; a) &middot; a') / |v &times; a|&sup2; (脫離平面的扭曲)<br>
+                <span class="eq-hl" id="calc-curv">Calculating...</span>
             </div>
-            <div class="eq-box" style="border-color:#00ffcc;">
-                <b>3. 高橢圓軌道 (HEO Elliptical Orbit)</b><br>
-                r(&theta;) = a(1 - e&sup2;) / (1 - e &times; cos&theta;)<br>
-                a = 20, e = 0.65<br>
-                <span class="eq-hl">
-                    r(&theta;) = 20(1 - 0.4225) / (1 - 0.65cos&theta;)<br>
-                    r(&theta;) = 11.55 / (1 - 0.65cos&theta;)
-                </span>
+
+            <h3 style="color:#ff9900; margin-top:20px; border-bottom: 1px solid #334; padding-bottom: 8px;">克卜勒與能量定律 (Kepler & Energy)</h3>
+            
+            <div class="eq-box" style="border-color:#ff9900;">
+                <b>克卜勒面積速率 (Kepler's Areal Velocity)</b><br>
+                dA/dt = &frac12; |r &times; v| (掃掠面積恆定)<br>
+                <span class="eq-hl" id="calc-kepler">Calculating...</span>
+            </div>
+
+            <div class="eq-box" style="border-color:#00e5ff;">
+                <b>引力做功與能量 (Work & Specific Energy)</b><br>
+                W = &int; F &middot; dr = &Delta;K (功-動能定理)<br>
+                &epsilon; = v&sup2;/2 - &mu;/r (Vis-viva Integral)<br>
+                <span class="eq-hl" id="calc-eng">Calculating...</span>
             </div>
         </div>
         
@@ -244,35 +226,19 @@
         const pathColors = ["green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "green", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue"];
         const MAX = shipData.length;
 
-        const ORION_MASS = 26500; 
-
         // --- MAIN 3D Scene ---
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(45, window.innerWidth/window.innerHeight, 0.1, 5000);
         camera.position.set(200, -200, 500);
         const renderer = new THREE.WebGLRenderer({ antialias: true, logarithmicDepthBuffer: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
-        
-        renderer.shadowMap.enabled = true;
-        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         document.body.appendChild(renderer.domElement);
-        
         const controls = new THREE.OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
 
-        scene.add(new THREE.AmbientLight(0x222222)); 
-        const sunLight = new THREE.DirectionalLight(0xffffff, 2.0);
-        sunLight.position.set(500, 300, 150); 
-        sunLight.castShadow = true;
-        sunLight.shadow.mapSize.width = 2048;
-        sunLight.shadow.mapSize.height = 2048;
-        sunLight.shadow.camera.near = 100;
-        sunLight.shadow.camera.far = 1000;
-        sunLight.shadow.camera.left = -200;
-        sunLight.shadow.camera.right = 200;
-        sunLight.shadow.camera.top = 200;
-        sunLight.shadow.camera.bottom = -200;
-        scene.add(sunLight);
+        scene.add(new THREE.AmbientLight(0x333333));
+        const sunLight = new THREE.PointLight(0xffffff, 2.5, 3000);
+        sunLight.position.set(500, 300, 150); scene.add(sunLight);
 
         const starGeo = new THREE.BufferGeometry();
         const starPts = new Float32Array(3000);
@@ -280,24 +246,21 @@
         starGeo.setAttribute('position', new THREE.BufferAttribute(starPts, 3));
         scene.add(new THREE.Points(starGeo, new THREE.PointsMaterial({color: 0xffffff, size: 1.2})));
 
-        const earthMat = new THREE.MeshStandardMaterial({map: new THREE.TextureLoader().load('https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/earth_atmos_2048.jpg'), roughness: 0.8});
-        const earth = new THREE.Mesh(new THREE.SphereGeometry(6.371, 64, 64), earthMat);
-        earth.castShadow = true; earth.receiveShadow = true;
+        const earth = new THREE.Mesh(new THREE.SphereGeometry(6.371, 64, 64), new THREE.MeshPhongMaterial({map: new THREE.TextureLoader().load('https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/earth_atmos_2048.jpg')}));
         scene.add(earth);
 
+        // 🇹🇼 NTUT Marker on Earth
         const taipeiPhi = (90 - 25.04) * Math.PI / 180;
         const taipeiTheta = (121.53 + 90) * Math.PI / 180; 
         
-        const ntutMarker = new THREE.Mesh(new THREE.SphereGeometry(0.04, 16, 16), new THREE.MeshBasicMaterial({color: 0x00e5ff}));
+        const ntutMarker = new THREE.Mesh(new THREE.SphereGeometry(0.02, 16, 16), new THREE.MeshBasicMaterial({color: 0x00e5ff}));
         ntutMarker.position.setFromSphericalCoords(6.371, taipeiPhi, taipeiTheta);
-        const ntutRing = new THREE.Mesh(new THREE.RingGeometry(0.06, 0.1, 32), new THREE.MeshBasicMaterial({color: 0x00e5ff, transparent: true, opacity: 0.8, side: THREE.DoubleSide}));
+        const ntutRing = new THREE.Mesh(new THREE.RingGeometry(0.04, 0.08, 32), new THREE.MeshBasicMaterial({color: 0x00e5ff, transparent: true, opacity: 0.8, side: THREE.DoubleSide}));
         ntutRing.position.setFromSphericalCoords(6.38, taipeiPhi, taipeiTheta);
         ntutRing.lookAt(new THREE.Vector3(0,0,0));
         earth.add(ntutMarker); earth.add(ntutRing);
 
-        const moonMat = new THREE.MeshStandardMaterial({map: new THREE.TextureLoader().load('https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/moon_1024.jpg'), roughness: 1.0});
-        const moon = new THREE.Mesh(new THREE.SphereGeometry(6.0, 64, 64), moonMat);
-        moon.castShadow = true; moon.receiveShadow = true;
+        const moon = new THREE.Mesh(new THREE.SphereGeometry(6.0, 64, 64), new THREE.MeshPhongMaterial({map: new THREE.TextureLoader().load('https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/moon_1024.jpg'), emissive: 0x111111}));
         scene.add(moon);
         
         const orbitGeo = new THREE.BufferGeometry();
@@ -310,74 +273,37 @@
         const orbitLine = new THREE.Line(orbitGeo, new THREE.LineBasicMaterial({color: 0x444444, transparent: true, opacity: 0.6}));
         scene.add(orbitLine);
 
-        // 🚀 HIGH-DETAIL PROCEDURAL ORION SPACECRAFT MODEL WITH SHADOWS
+        // 🚀 REALISTIC PROCEDURAL ORION SPACECRAFT
         const shipGroup = new THREE.Group();
         
-        const matSilver = new THREE.MeshStandardMaterial({color: 0xcccccc, metalness: 0.8, roughness: 0.3});
-        const matWhite = new THREE.MeshStandardMaterial({color: 0xeeeeee, metalness: 0.1, roughness: 0.8});
-        const matBlack = new THREE.MeshStandardMaterial({color: 0x111111, metalness: 0.2, roughness: 0.5});
-        const matGold = new THREE.MeshStandardMaterial({color: 0xd4af37, metalness: 0.9, roughness: 0.4});
-        const matPanel = new THREE.MeshStandardMaterial({color: 0x051525, metalness: 0.5, roughness: 0.2});
+        // Crew Module (CM)
+        const cm = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 1.2, 1.0, 32), new THREE.MeshPhongMaterial({color: 0xdddddd, shininess: 100}));
+        cm.rotation.z = -Math.PI/2; cm.position.x = 1.3; shipGroup.add(cm);
         
-        // 1. Crew Module (CM)
-        const cmGroup = new THREE.Group();
-        const cm = new THREE.Mesh(new THREE.ConeGeometry(0.8, 1.0, 32), matSilver);
-        cm.rotation.x = -Math.PI/2; 
-        cm.castShadow = true; cm.receiveShadow = true;
-        const dock = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.25, 0.2, 16), matSilver);
-        dock.position.z = 0.6; dock.rotation.x = Math.PI/2;
-        cmGroup.add(cm); cmGroup.add(dock);
-        cmGroup.position.x = 1.0; cmGroup.rotation.y = Math.PI/2;
-        shipGroup.add(cmGroup);
-
-        // 2. Skirt / Heatshield
-        const skirt = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 0.8, 0.4, 32), matBlack);
-        skirt.position.x = 0.3; skirt.rotation.z = Math.PI/2;
-        skirt.castShadow = true; skirt.receiveShadow = true;
-        shipGroup.add(skirt);
-
-        // 3. European Service Module (ESM)
-        const esm = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 0.8, 1.4, 32), matWhite);
-        esm.position.x = -0.6; esm.rotation.z = Math.PI/2; 
-        esm.castShadow = true; esm.receiveShadow = true;
-        for(let i=0; i<8; i++) {
-            const greeble = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.4, 0.2), matSilver);
-            const angle = (i/8) * Math.PI * 2;
-            greeble.position.set(Math.cos(angle)*0.75, 0, Math.sin(angle)*0.75);
-            esm.add(greeble);
-        }
-        shipGroup.add(esm);
+        // European Service Module (ESM)
+        const esm = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.2, 1.6, 32), new THREE.MeshPhongMaterial({color: 0x888888}));
+        esm.rotation.z = -Math.PI/2; shipGroup.add(esm);
         
-        // 4. Main Engine (OMS Nozzle)
-        const engine = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.4, 0.6, 16, 1, true), matGold);
-        engine.position.x = -1.6; engine.rotation.z = -Math.PI/2; 
-        engine.castShadow = true;
-        shipGroup.add(engine);
-
-        // 5. Solar Arrays (X-shape, swept back)
-        const canvas = document.createElement('canvas');
-        canvas.width = 64; canvas.height = 64;
-        const context = canvas.getContext('2d');
-        context.fillStyle = '#0a3b70'; context.fillRect(0,0,64,64);
-        context.strokeStyle = '#225599'; context.lineWidth = 2;
-        context.strokeRect(0,0,64,64); context.beginPath(); context.moveTo(32,0); context.lineTo(32,64); context.moveTo(0,32); context.lineTo(64,32); context.stroke();
-        const panelTexture = new THREE.CanvasTexture(canvas);
-        panelTexture.wrapS = THREE.RepeatWrapping; panelTexture.wrapT = THREE.RepeatWrapping;
-        panelTexture.repeat.set(1, 4);
+        // Main Engine
+        const engine = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.2, 0.6, 32), new THREE.MeshPhongMaterial({color: 0x222222}));
+        engine.rotation.z = -Math.PI/2; engine.position.x = -1.1; shipGroup.add(engine);
         
-        const solarMat = new THREE.MeshStandardMaterial({map: panelTexture, metalness: 0.5, roughness: 0.2});
+        // Solar Arrays (X-Wing)
+        const panelMat = new THREE.MeshPhongMaterial({color: 0x051a30, side: THREE.DoubleSide});
+        const panelGeo = new THREE.BoxGeometry(3.5, 0.05, 0.8);
+        const angles = [Math.PI/4, 3*Math.PI/4, 5*Math.PI/4, 7*Math.PI/4];
         for(let i=0; i<4; i++) {
-            const panelGroup = new THREE.Group();
-            const truss = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 1.5, 8), matBlack);
-            truss.position.z = 0.75; truss.rotation.x = Math.PI/2;
-            const panel = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.05, 4.0), solarMat);
-            panel.position.z = 3.0; 
-            panel.castShadow = true;
-            panelGroup.add(truss); panelGroup.add(panel);
-            panelGroup.position.x = -0.6;
-            panelGroup.rotation.x = (i * Math.PI) / 2 + Math.PI/4; 
-            panelGroup.rotation.y = -Math.PI/12; 
-            shipGroup.add(panelGroup);
+            const pivot = new THREE.Group();
+            pivot.rotation.x = angles[i];
+            const p = new THREE.Mesh(panelGeo, panelMat);
+            p.position.set(0, 0, 2.5); 
+            p.rotation.y = Math.PI/12; // Sweep back
+            pivot.add(p);
+            // Arm
+            const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 1.5), new THREE.MeshPhongMaterial({color: 0x555}));
+            arm.rotation.x = Math.PI/2; arm.position.set(0, 0, 1.0);
+            pivot.add(arm);
+            shipGroup.add(pivot);
         }
         scene.add(shipGroup);
 
@@ -405,7 +331,11 @@
         subScene.add(new THREE.GridHelper(800, 40, 0x444444, 0x222222));
         const subEarth = new THREE.Mesh(new THREE.SphereGeometry(10,32,32), new THREE.MeshBasicMaterial({color: 0x1a73e8})); subScene.add(subEarth);
         const subMoon = new THREE.Mesh(new THREE.SphereGeometry(5,32,32), new THREE.MeshBasicMaterial({color: 0xaaaaaa})); subScene.add(subMoon);
-        const subShip = new THREE.Mesh(new THREE.SphereGeometry(3,16,16), new THREE.MeshBasicMaterial({color: 0xffffff})); subScene.add(subShip);
+        
+        // Use clone of real Orion in graph for coolness
+        const subShip = shipGroup.clone();
+        subShip.scale.set(3,3,3); // scale up for visibility
+        subScene.add(subShip);
         
         subScene.add(new THREE.Line(lineGeoOut, new THREE.LineBasicMaterial({color: 0x00ff00})));
         subScene.add(new THREE.Line(lineGeoIn, new THREE.LineBasicMaterial({color: 0x00aaff})));
@@ -422,12 +352,12 @@
         function toggleMainPanel() {
             const p = document.getElementById('live-math-panel');
             const btn = document.getElementById('panel-toggle');
-            if (p.style.display === 'none') {
+            if(p.style.display === 'none') {
                 p.style.display = 'block';
-                btn.innerText = '[ - ] Hide Math Panel';
+                btn.innerText = '[ - ] Hide Math';
             } else {
                 p.style.display = 'none';
-                btn.innerText = '[ + ] Show Math Panel';
+                btn.innerText = '[ + ] Show Math';
             }
         }
 
@@ -523,43 +453,42 @@
         const camTargetPos = new THREE.Vector3();
         const camLookTarget = new THREE.Vector3();
 
-        function updateCalculusHTML(activeS, prevS, mx, my, mz) {
-            const v2 = activeS.vx*activeS.vx + activeS.vy*activeS.vy + activeS.vz*activeS.vz;
-            const r = Math.sqrt(activeS.x*activeS.x + activeS.y*activeS.y + activeS.z*activeS.z);
+        function updateCalculusHTML(s, mx, my, mz, frameIdx) {
+            const v2 = s.vx*s.vx + s.vy*s.vy + s.vz*s.vz;
+            const r = Math.sqrt(s.x*s.x + s.y*s.y + s.z*s.z);
             const vMag = Math.sqrt(v2);
-            const accMag = Math.sqrt(activeS.ax*activeS.ax + activeS.ay*activeS.ay + activeS.az*activeS.az);
+            const accMag = Math.sqrt(s.ax*s.ax + s.ay*s.ay + s.az*s.az);
             
-            document.getElementById('calc-sub-pos').innerHTML = '&radic;( ('+activeS.x.toFixed(0)+')&sup2; + ('+activeS.y.toFixed(0)+')&sup2; + ('+activeS.z.toFixed(0)+')&sup2; )<br>= '+Math.round(r*1000).toLocaleString()+' km';
-            document.getElementById('calc-sub-vel').innerHTML = '&radic;( ('+activeS.vx.toFixed(2)+')&sup2; + ('+activeS.vy.toFixed(2)+')&sup2; + ('+activeS.vz.toFixed(2)+')&sup2; )<br>= '+vMag.toFixed(2)+' km/s';
-            document.getElementById('calc-sub-acc').innerHTML = 'a: ' + (accMag*100).toFixed(4) + ' m/s&sup2;<br>L: ' + activeS.arc.toLocaleString() + ' km';
-            
-            // Frenet-Serret Vectors
-            const aT = (vMag > 0) ? ((activeS.vx*activeS.ax + activeS.vy*activeS.ay + activeS.vz*activeS.az) / vMag) : 0;
-            const aN = Math.sqrt(Math.max(0, accMag*accMag - aT*aT));
-            document.getElementById('calc-frenet').innerHTML = '|T| = 1<br>a_T (Tangent/Speed change) = '+(aT*100).toFixed(4)+' m/s&sup2;<br>a_N (Normal/Direction change) = '+(aN*100).toFixed(4)+' m/s&sup2;';
-
-            // Jerk & Torsion (Live JS Calc)
-            const jx = (activeS.ax - prevS.ax) / 0.1;
-            const jy = (activeS.ay - prevS.ay) / 0.1;
-            const jz = (activeS.az - prevS.az) / 0.1;
-            
-            const cx = activeS.vy*activeS.az - activeS.vz*activeS.ay;
-            const cy = activeS.vz*activeS.ax - activeS.vx*activeS.az;
-            const cz = activeS.vx*activeS.ay - activeS.vy*activeS.ax;
-            const crossMagSq = cx*cx + cy*cy + cz*cz;
-            
-            let torsion = 0;
-            if(crossMagSq > 1e-10) {
-                torsion = (cx*jx + cy*jy + cz*jz) / crossMagSq;
+            // Calc Jerk for Torsion
+            let jx = 0, jy = 0, jz = 0;
+            if (frameIdx < MAX - 1) {
+                const ns = shipData[frameIdx+1];
+                jx = (ns.ax - s.ax)/0.1; jy = (ns.ay - s.ay)/0.1; jz = (ns.az - s.az)/0.1;
             }
-            document.getElementById('calc-torsion').innerHTML = 'j (Jerk Mag) = ' + (Math.sqrt(jx*jx+jy*jy+jz*jz)*100).toFixed(4) + ' m/s&sup3;<br>&tau; (Torsion) = ' + torsion.toExponential(4) + ' rad/km';
+            
+            // Vectors Modal
+            document.getElementById('calc-pos').innerHTML = 'r = ('+s.x.toFixed(1)+')i + ('+s.y.toFixed(1)+')j + ('+s.z.toFixed(1)+')k<br>|r| = &radic;('+s.x.toFixed(0)+'&sup2; + '+s.y.toFixed(0)+'&sup2; + '+s.z.toFixed(0)+'&sup2;) = '+Math.round(r*1000).toLocaleString()+' km';
+            document.getElementById('calc-vel').innerHTML = 'v = ('+s.vx.toFixed(2)+')i + ('+s.vy.toFixed(2)+')j + ('+s.vz.toFixed(2)+')k<br>|v| = '+vMag.toFixed(2)+' km/s';
+            document.getElementById('calc-acc').innerHTML = 'a = ('+s.ax.toFixed(4)+')i + ('+s.ay.toFixed(4)+')j + ('+s.az.toFixed(4)+')k<br>L = '+s.arc.toLocaleString()+' km';
+            
+            // Frenet-Serret
+            const vDotA = s.vx*s.ax + s.vy*s.ay + s.vz*s.az;
+            const aT = (vMag > 0) ? (vDotA / vMag) : 0;
+            const aN = Math.sqrt(Math.max(0, accMag*accMag - aT*aT));
+            document.getElementById('calc-frenet').innerHTML = 'a_T (Tangent) = '+(aT*100).toFixed(4)+' m/s&sup2; (變速)<br>a_N (Normal) = '+(aN*100).toFixed(4)+' m/s&sup2; (轉彎)';
 
-            // Work / Kinetic Energy
-            const kineticEnergy = 0.5 * ORION_MASS * Math.pow(vMag * 1000, 2); // Joules
-            document.getElementById('calc-work').innerHTML = '&Delta;K = &frac12;mv&sup2;<br>= &frac12;(26500 kg)('+ (vMag*1000).toFixed(1) +' m/s)&sup2;<br>= ' + (kineticEnergy / 1e9).toFixed(2) + ' GJ (GigaJoules)';
+            // Orbital Physics (Kepler & Energy)
+            const hx = s.y*s.vz - s.z*s.vy, hy = s.z*s.vx - s.x*s.vz, hz = s.x*s.vy - s.y*s.vx;
+            const hMag = Math.sqrt(hx*hx + hy*hy + hz*hz);
+            const dA_dt = 0.5 * hMag;
+            document.getElementById('calc-kepler').innerHTML = '|r &times; v| = '+Math.round(hMag).toLocaleString()+' km&sup2;/s<br>dA/dt = '+Math.round(dA_dt).toLocaleString()+' km&sup2;/s';
 
             const eng = (v2 / 2) - (398.6 / r);
             document.getElementById('calc-eng').innerHTML = '&epsilon; = ('+vMag.toFixed(2)+')&sup2;/2 - 398.6/'+r.toFixed(1)+'<br>= ' + eng.toFixed(4) + ' km&sup2;/s&sup2;';
+
+            // Moon Dynamics
+            const mDist = Math.sqrt(mx*mx + my*my + mz*mz);
+            document.getElementById('calc-moon').innerHTML = 'r_m = ('+mx.toFixed(1)+')i + ('+my.toFixed(1)+')j + ('+mz.toFixed(1)+')k<br>|r_m| = '+Math.round(mDist*1000).toLocaleString()+' km';
         }
 
         function animate() {
@@ -578,7 +507,6 @@
             globalFrame++;
 
             const activeS = shipData[Math.min(shipFrame, MAX - 1)];
-            const prevS = shipFrame > 0 ? shipData[Math.min(shipFrame-1, MAX - 1)] : activeS;
 
             if (shipFrame < MAX) {
                 shipGroup.position.set(activeS.x, activeS.y, activeS.z);
@@ -598,12 +526,12 @@
 
                 if (shipFrame % 3 === 0) {
                     const r = Math.sqrt(activeS.x*activeS.x + activeS.y*activeS.y + activeS.z*activeS.z);
-                    const vMag = Math.sqrt(activeS.vx*activeS.vx + activeS.vy*activeS.vy + activeS.vz*activeS.vz);
-                    const dSM = Math.sqrt(Math.pow(currentMx-activeS.x,2) + Math.pow(currentMy-activeS.y,2) + Math.pow(currentMz-activeS.z,2)); 
+                    const dSM = Math.sqrt(Math.pow(currentMx-activeS.x,2) + Math.pow(currentMy-activeS.y,2) + Math.pow(currentMz-activeS.z,2));
+                    const v = Math.sqrt(activeS.vx*activeS.vx + activeS.vy*activeS.vy + activeS.vz*activeS.vz);
                     
-                    document.getElementById('hud-dist-earth').innerText = Math.round(r*1000).toLocaleString() + ' km';
-                    document.getElementById('hud-dist-moon').innerText = Math.round(dSM*1000).toLocaleString() + ' km';
-                    document.getElementById('hud-vel').innerText = vMag.toFixed(2) + ' km/s';
+                    document.getElementById('res-dist-earth').innerText = Math.round(r*1000).toLocaleString() + ' km';
+                    document.getElementById('res-dist-moon').innerText = Math.round(dSM*1000).toLocaleString() + ' km';
+                    document.getElementById('res-vel-main').innerText = v.toFixed(2) + ' km/s';
                     document.getElementById('lbl-stage').innerText = stagesData[shipFrame];
                 }
                 shipFrame++;
@@ -611,8 +539,9 @@
                 shipGroup.visible = false;
             }
 
+            // Dynamic Camera Routing
             if(camMode === 'ship' && shipGroup.visible) {
-                camTargetPos.set(activeS.x - activeS.vx*3, activeS.y - activeS.vy*3 + 10, activeS.z - activeS.vz*3);
+                camTargetPos.set(activeS.x - activeS.vx*3, activeS.y - activeS.vy*3 + 5, activeS.z - activeS.vz*3);
                 camLookTarget.set(activeS.x + activeS.vx*10, activeS.y + activeS.vy*10, activeS.z + activeS.vz*10);
                 camera.position.lerp(camTargetPos, 0.1); 
                 controls.target.lerp(camLookTarget, 0.1);
@@ -621,21 +550,17 @@
                 camera.position.lerp(camTargetPos, 0.05);
                 controls.target.lerp(earth.position, 0.05);
             } else if(camMode === 'earth') {
+                // Taiwan Earth-Sync POV
                 const twLocalPos = new THREE.Vector3().setFromSphericalCoords(6.371 + 30, taipeiPhi, taipeiTheta);
                 const twWorldPos = twLocalPos.applyAxisAngle(new THREE.Vector3(0,1,0), earth.rotation.y);
                 camera.position.lerp(twWorldPos, 0.05);
                 controls.target.lerp(new THREE.Vector3(activeS.x, activeS.y, activeS.z), 0.05);
             } else if(camMode === 'ntut') {
-                // Locket target onto Taiwan marker continuously until user clicks another button
                 const markerWorldPos = new THREE.Vector3();
                 ntutMarker.getWorldPosition(markerWorldPos);
-                
-                const offset = markerWorldPos.clone().normalize().multiplyScalar(15);
-                camTargetPos.copy(offset);
-                
-                camera.position.lerp(camTargetPos, 0.05);
-                controls.target.lerp(markerWorldPos, 0.05);
-                
+                camTargetPos.copy(markerWorldPos).normalize().multiplyScalar(10); // Close zoom
+                camera.position.lerp(camTargetPos, 0.1);
+                controls.target.lerp(markerWorldPos, 0.1); // Continuously track NTUT
                 const s = 1 + Math.sin(Date.now() * 0.01) * 0.3;
                 ntutRing.scale.set(s, s, 1);
             } else if(camMode === 'ship' && !shipGroup.visible) {
@@ -644,7 +569,7 @@
             controls.update();
 
             if (isDesmos) {
-                updateCalculusHTML(activeS, prevS, currentMx, currentMy, currentMz);
+                updateCalculusHTML(activeS, currentMx, currentMy, currentMz, shipFrame);
                 if (gMode === '2D') {
                     const w = document.getElementById('desmos-grid').width;
                     const h = document.getElementById('desmos-grid').height;
@@ -672,6 +597,7 @@
                     
                     ctx2d.strokeStyle = '#00e5ff'; ctx2d.lineWidth = 2; ctx2d.beginPath(); ctx2d.moveTo(px,py); ctx2d.lineTo(px + activeS.vx*5, py - activeS.vy*5); ctx2d.stroke();
                     
+                    // FIXED JITTER: Clamped acceleration vector magnitude for smooth visuals
                     const visualAx = activeS.ax*5000; const visualAy = activeS.ay*5000;
                     let accLen = Math.sqrt(visualAx*visualAx + visualAy*visualAy);
                     let scaleA = accLen > 150 ? 150/accLen : 1; 
@@ -682,6 +608,7 @@
                 } else {
                     subMoon.position.set(currentMx, currentMy, currentMz);
                     subShip.position.set(activeS.x, activeS.y, activeS.z);
+                    subShip.rotation.copy(shipGroup.rotation);
                     
                     const vDir = new THREE.Vector3(activeS.vx, activeS.vy, activeS.vz);
                     if(vDir.length() > 0) {

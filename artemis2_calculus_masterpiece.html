@@ -55,7 +55,7 @@
         /* Educational Calculus Modal */
         #desmos-modal { display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 95vw; height: 90vh; max-width: 1500px; background: rgba(10, 12, 18, 0.95); border: 1px solid #334; border-radius: 12px; z-index: 100; box-shadow: 0 10px 50px rgba(0,0,0,0.9); flex-direction: row; overflow: hidden; }
         .desmos-sidebar { width: 42%; padding: 20px; border-right: 1px solid #223; background: rgba(0,0,0,0.3); overflow-y: auto; }
-        .desmos-canvas-container { width: 58%; position: relative; background: #050505; display: flex; flex-direction: column; }
+        .desmos-canvas-container { width: 58%; position: relative; background: #050505; display: flex; flex-direction: column; overflow: hidden; }
         
         .modal-toolbar { display: flex; align-items: center; background: #111; border-bottom: 1px solid #333; padding-right: 15px; flex-shrink: 0; z-index: 2; height: 50px; }
         .graph-tabs { display: flex; height: 100%; }
@@ -70,10 +70,14 @@
         
         .graph-content-area { flex-grow: 1; position: relative; width: 100%; height: calc(100% - 50px); }
         #desmos-grid { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: block; }
-        #graph-3d-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: none; }
+        #graph-3d-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: none; overflow: hidden; }
         
-        #ship-label-3d { position: absolute; top: 15px; left: 15px; color: #00e5ff; background: rgba(0,0,0,0.7); padding: 8px 12px; border-radius: 6px; border-left: 3px solid #00e5ff; font-size: 14px; z-index: 10; display: none; pointer-events: none; }
-        #axes-legend-3d { position: absolute; bottom: 15px; right: 15px; background: rgba(0,0,0,0.7); padding: 10px; border-radius: 6px; border: 1px solid #334; font-size: 12px; display: none; pointer-events: none; }
+        /* 3D Dynamic HUD Elements */
+        .hud-3d-label { position: absolute; font-family: 'Consolas', monospace; font-weight: bold; font-size: 12px; pointer-events: none; z-index: 10; display: none; text-shadow: 1px 1px 2px #000; }
+        #hud-3d-ship { background: rgba(0,0,0,0.7); color: #fff; padding: 6px 10px; border-radius: 4px; border-left: 3px solid #00e5ff; font-size: 13px; }
+        #hud-3d-x { color: #ff5555; }
+        #hud-3d-y { color: #00ff00; }
+        #hud-3d-z { color: #00aaff; }
         
         .eq-box { background: rgba(25,30,40,0.6); border-left: 4px solid #1a73e8; padding: 12px; margin-bottom: 12px; border-radius: 4px; font-size: 13px; color: #ccc; backdrop-filter: blur(5px); }
         .eq-hl { color: #fff; font-family: monospace; background: rgba(0,0,0,0.5); padding: 8px; border-radius: 4px; display: block; margin-top: 6px; font-size: 13px; border: 1px solid #333; }
@@ -106,7 +110,7 @@
         <button class="cam-btn active" id="btn-cam-free" onclick="setCamera('free')">🎥 自由視角 / Free Cam</button>
         <button class="cam-btn" id="btn-cam-ship" onclick="setCamera('ship')">🚀 太空船視角 / Ship POV</button>
         <button class="cam-btn" id="btn-cam-moon" onclick="setCamera('moon')">🌕 月球視角 / Moon POV</button>
-        <button class="cam-btn" id="btn-cam-earth" onclick="setCamera('earth')">🌍 地球視角 / Earth POV</button>
+        <button class="cam-btn" id="btn-cam-earth" onclick="setCamera('earth')">🌍 Earth POV</button>
     </div>
 
     <button id="panel-toggle" class="ui-element" onclick="toggleMainPanel()">[ - ] Hide Info</button>
@@ -225,13 +229,11 @@
             <div class="graph-content-area" id="graph-content-area">
                 <canvas id="desmos-grid"></canvas>
                 <div id="graph-3d-container">
-                    <div id="ship-label-3d">Ship (x: 0, y: 0, z: 0)</div>
-                    <div id="axes-legend-3d">
-                        <b>3D 座標軸 (Axes)</b><br>
-                        <span style="color:#ff5555; font-weight:bold;">&rarr;</span> X 軸 (Red)<br>
-                        <span style="color:#00ff00; font-weight:bold;">&uarr;</span> Y 軸 (Green)<br>
-                        <span style="color:#00aaff; font-weight:bold;">&nearr;</span> Z 軸 (Blue)
-                    </div>
+                    <!-- 3D HUD Tracking Elements -->
+                    <div id="hud-3d-ship" class="hud-3d-label">Ship(0,0,0)</div>
+                    <div id="hud-3d-x" class="hud-3d-label">X 軸 (Axis)</div>
+                    <div id="hud-3d-y" class="hud-3d-label">Y 軸 (Axis)</div>
+                    <div id="hud-3d-z" class="hud-3d-label">Z 軸 (Axis)</div>
                 </div>
             </div>
         </div>
@@ -317,9 +319,7 @@
         const matWhite = new THREE.MeshStandardMaterial({color: 0xeeeeee, metalness: 0.1, roughness: 0.8});
         const matBlack = new THREE.MeshStandardMaterial({color: 0x111111, metalness: 0.2, roughness: 0.5});
         const matGold = new THREE.MeshStandardMaterial({color: 0xd4af37, metalness: 0.9, roughness: 0.4});
-        const matPanel = new THREE.MeshStandardMaterial({color: 0x051525, metalness: 0.5, roughness: 0.2});
         
-        // 1. Crew Module (CM)
         const cmGroup = new THREE.Group();
         const cm = new THREE.Mesh(new THREE.ConeGeometry(0.8, 1.0, 32), matSilver);
         cm.rotation.x = -Math.PI/2; 
@@ -330,13 +330,11 @@
         cmGroup.position.x = 1.0; cmGroup.rotation.y = Math.PI/2;
         shipGroup.add(cmGroup);
 
-        // 2. Skirt / Heatshield
         const skirt = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 0.8, 0.4, 32), matBlack);
         skirt.position.x = 0.3; skirt.rotation.z = Math.PI/2;
         skirt.castShadow = true; skirt.receiveShadow = true;
         shipGroup.add(skirt);
 
-        // 3. European Service Module (ESM)
         const esm = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 0.8, 1.4, 32), matWhite);
         esm.position.x = -0.6; esm.rotation.z = Math.PI/2; 
         esm.castShadow = true; esm.receiveShadow = true;
@@ -348,13 +346,11 @@
         }
         shipGroup.add(esm);
         
-        // 4. Main Engine (OMS Nozzle)
         const engine = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.4, 0.6, 16, 1, true), matGold);
         engine.position.x = -1.6; engine.rotation.z = -Math.PI/2; 
         engine.castShadow = true;
         shipGroup.add(engine);
 
-        // 5. Solar Arrays (X-shape, swept back)
         const canvas = document.createElement('canvas');
         canvas.width = 64; canvas.height = 64;
         const context = canvas.getContext('2d');
@@ -401,7 +397,7 @@
         const subControls = new THREE.OrbitControls(subCamera, subRenderer.domElement);
         subControls.enableDamping = true;
         
-        subScene.add(new THREE.AxesHelper(150)); 
+        const axesH = new THREE.AxesHelper(150); subScene.add(axesH); 
         subScene.add(new THREE.GridHelper(800, 40, 0x444444, 0x222222));
         const subEarth = new THREE.Mesh(new THREE.SphereGeometry(10,32,32), new THREE.MeshBasicMaterial({color: 0x1a73e8})); subScene.add(subEarth);
         const subMoon = new THREE.Mesh(new THREE.SphereGeometry(5,32,32), new THREE.MeshBasicMaterial({color: 0xaaaaaa})); subScene.add(subMoon);
@@ -523,6 +519,22 @@
         const camTargetPos = new THREE.Vector3();
         const camLookTarget = new THREE.Vector3();
 
+        // Helper to update 3D HTML Labels
+        function update3DLabel(id, pos3D, isVisible) {
+            const el = document.getElementById(id);
+            if(!isVisible) { el.style.display = 'none'; return; }
+            const v = pos3D.clone().project(subCamera);
+            if(v.z > 1) { el.style.display = 'none'; return; } // Behind camera
+            
+            const area = document.getElementById('graph-content-area');
+            const x = (v.x * 0.5 + 0.5) * area.clientWidth;
+            const y = (-(v.y * 0.5) + 0.5) * area.clientHeight;
+            
+            el.style.display = 'block';
+            el.style.left = (x + 10) + 'px';
+            el.style.top = (y - 15) + 'px';
+        }
+
         function updateCalculusHTML(activeS, prevS, mx, my, mz) {
             const v2 = activeS.vx*activeS.vx + activeS.vy*activeS.vy + activeS.vz*activeS.vz;
             const r = Math.sqrt(activeS.x*activeS.x + activeS.y*activeS.y + activeS.z*activeS.z);
@@ -533,7 +545,7 @@
             document.getElementById('calc-sub-vel').innerHTML = '&radic;( ('+activeS.vx.toFixed(2)+')&sup2; + ('+activeS.vy.toFixed(2)+')&sup2; + ('+activeS.vz.toFixed(2)+')&sup2; )<br>= '+vMag.toFixed(2)+' km/s';
             document.getElementById('calc-sub-acc').innerHTML = 'a: ' + (accMag*100).toFixed(4) + ' m/s&sup2;<br>L: ' + activeS.arc.toLocaleString() + ' km';
             
-            // Frenet-Serret Vectors
+            // Frenet-Serret
             const aT = (vMag > 0) ? ((activeS.vx*activeS.ax + activeS.vy*activeS.ay + activeS.vz*activeS.az) / vMag) : 0;
             const aN = Math.sqrt(Math.max(0, accMag*accMag - aT*aT));
             document.getElementById('calc-frenet').innerHTML = '|T| = 1<br>a_T (Tangent/Speed change) = '+(aT*100).toFixed(4)+' m/s&sup2;<br>a_N (Normal/Direction change) = '+(aN*100).toFixed(4)+' m/s&sup2;';
@@ -555,7 +567,7 @@
             document.getElementById('calc-torsion').innerHTML = 'j (Jerk Mag) = ' + (Math.sqrt(jx*jx+jy*jy+jz*jz)*100).toFixed(4) + ' m/s&sup3;<br>&tau; (Torsion) = ' + torsion.toExponential(4) + ' rad/km';
 
             // Work / Kinetic Energy
-            const kineticEnergy = 0.5 * ORION_MASS * Math.pow(vMag * 1000, 2); // Joules
+            const kineticEnergy = 0.5 * ORION_MASS * Math.pow(vMag * 1000, 2); 
             document.getElementById('calc-work').innerHTML = '&Delta;K = &frac12;mv&sup2;<br>= &frac12;(26500 kg)('+ (vMag*1000).toFixed(1) +' m/s)&sup2;<br>= ' + (kineticEnergy / 1e9).toFixed(2) + ' GJ (GigaJoules)';
 
             const eng = (v2 / 2) - (398.6 / r);
@@ -626,7 +638,6 @@
                 camera.position.lerp(twWorldPos, 0.05);
                 controls.target.lerp(new THREE.Vector3(activeS.x, activeS.y, activeS.z), 0.05);
             } else if(camMode === 'ntut') {
-                // Locket target onto Taiwan marker continuously until user clicks another button
                 const markerWorldPos = new THREE.Vector3();
                 ntutMarker.getWorldPosition(markerWorldPos);
                 
@@ -679,6 +690,12 @@
                     
                     ctx2d.fillStyle = '#fff'; ctx2d.font = '12px Consolas';
                     ctx2d.fillText('Ship(x:'+activeS.x.toFixed(0)+', y:'+activeS.y.toFixed(0)+')', px+10, py-10);
+                    
+                    // Hide 3D labels when in 2D mode
+                    update3DLabel('hud-3d-ship', new THREE.Vector3(), false);
+                    update3DLabel('hud-3d-x', new THREE.Vector3(), false);
+                    update3DLabel('hud-3d-y', new THREE.Vector3(), false);
+                    update3DLabel('hud-3d-z', new THREE.Vector3(), false);
                 } else {
                     subMoon.position.set(currentMx, currentMy, currentMz);
                     subShip.position.set(activeS.x, activeS.y, activeS.z);
@@ -697,7 +714,12 @@
                         accArrow.position.copy(subShip.position);
                     }
                     
-                    document.getElementById('ship-label-3d').innerText = 'Ship (x: ' + activeS.x.toFixed(1) + ', y: ' + activeS.y.toFixed(1) + ', z: ' + activeS.z.toFixed(1) + ')';
+                    // Update Dynamic 3D Labels
+                    document.getElementById('hud-3d-ship').innerText = 'Ship (x: ' + activeS.x.toFixed(0) + ', y: ' + activeS.y.toFixed(0) + ', z: ' + activeS.z.toFixed(0) + ')';
+                    update3DLabel('hud-3d-ship', subShip.position, true);
+                    update3DLabel('hud-3d-x', new THREE.Vector3(150,0,0), true);
+                    update3DLabel('hud-3d-y', new THREE.Vector3(0,150,0), true);
+                    update3DLabel('hud-3d-z', new THREE.Vector3(0,0,150), true);
                 }
             }
             
